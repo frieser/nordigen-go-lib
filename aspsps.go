@@ -18,6 +18,7 @@ type Aspsps struct {
 	Bic                  string   `json:"bic"`
 	TransactionTotalDays string   `json:"transaction_total_days"`
 	Countries            []string `json:"countries"`
+	Logo                 string   `json:"logo"`
 }
 
 func (c Client) ListAspsps(country string) ([]Aspsps, error) {
