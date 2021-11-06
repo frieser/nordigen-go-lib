@@ -125,7 +125,7 @@ func (c Client) CreateRequisitionLink(referenceId string, rl RequisitionLinkRequ
 		return RequisitionLinkResponse{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return RequisitionLinkResponse{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return RequisitionLinkResponse{}, fmt.Errorf("expected %d status code: got %d %s", http.StatusOK, resp.StatusCode, resp.Body)
 	}
 	rr := RequisitionLinkResponse{}
 	err = json.Unmarshal(body, &rr)
