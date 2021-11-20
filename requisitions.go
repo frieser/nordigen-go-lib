@@ -9,40 +9,44 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
-const requisiontsPath = "requisitions"
-const linksPath = "links"
-
-type RequisitionLinkRequest struct {
-	AspspsId string `json:"aspsp_id"`
-}
-
-type RequisitionLinkResponse struct {
-	Initiate string `json:"initiate"`
-}
+const requisitionsPath = "requisitions"
 
 type Requisition struct {
-	Redirect   string   `json:"redirect"`
-	Reference  string   `json:"reference"`
-	EnduserId  string   `json:"enduser_id"`
-	Id         string   `json:"id"`
-	Status     string   `json:"status"`
-	Agreements []string `json:"agreements"`
-	Accounts   []string `json:"accounts"`
+	Id       string    `json:"id,omitempty"`
+	Created  time.Time `json:"created,omitempty"`
+	Redirect string    `json:"redirect,omitempty"`
+	Status   string    `json:"status,omitempty"`
+	// There is an issue in the api, the status is still a string
+	// like in v1
+	//Status        Status    `json:"status,omitempty"`
+	InstitutionId string   `json:"institution_id,omitempty"`
+	Agreement     string   `json:"agreement,omitempty"`
+	Reference     string   `json:"reference,omitempty"`
+	Accounts      []string `json:"accounts,omitempty"`
+	UserLanguage  string   `json:"user_language,omitempty"`
+	Link          string   `json:"link,omitempty"`
+}
+
+type Status struct {
+	Short       string `json:"short,omitempty"`
+	Long        string `json:"long,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 func (c Client) CreateRequisition(r Requisition) (Requisition, error) {
 	req := http.Request{
 		Method: http.MethodPost,
 		URL: &url.URL{
-			Path: strings.Join([]string{requisiontsPath, ""}, "/"),
+			Path: strings.Join([]string{requisitionsPath, ""}, "/"),
 		},
 	}
 	data, err := json.Marshal(r)
 
 	if err != nil {
-		return Requisition{}, nil
+		return Requisition{}, err
 	}
 	req.Body = io.NopCloser(bytes.NewBuffer(data))
 
@@ -52,7 +56,6 @@ func (c Client) CreateRequisition(r Requisition) (Requisition, error) {
 		return Requisition{}, err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
-
 
 	if err != nil {
 		return Requisition{}, err
@@ -73,7 +76,7 @@ func (c Client) GetRequisition(id string) (r Requisition, err error) {
 	req := http.Request{
 		Method: http.MethodGet,
 		URL: &url.URL{
-			Path: strings.Join([]string{requisiontsPath, id,""}, "/"),
+			Path: strings.Join([]string{requisitionsPath, id, ""}, "/"),
 		},
 	}
 	resp, err := c.c.Do(&req)
@@ -87,7 +90,7 @@ func (c Client) GetRequisition(id string) (r Requisition, err error) {
 		return Requisition{}, err
 	}
 
-	if resp.StatusCode != http.StatusOK{
+	if resp.StatusCode != http.StatusOK {
 		return Requisition{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
 	}
 	err = json.Unmarshal(body, &r)
@@ -97,42 +100,4 @@ func (c Client) GetRequisition(id string) (r Requisition, err error) {
 	}
 
 	return r, nil
-}
-
-
-func (c Client) CreateRequisitionLink(referenceId string, rl RequisitionLinkRequest) (RequisitionLinkResponse, error) {
-	req := http.Request{
-		Method: http.MethodPost,
-		URL: &url.URL{
-			Path: strings.Join([]string{requisiontsPath, referenceId, linksPath, ""}, "/"),
-		},
-	}
-	data, err := json.Marshal(rl)
-
-	if err != nil {
-		return RequisitionLinkResponse{}, nil
-	}
-	req.Body = io.NopCloser(bytes.NewBuffer(data))
-
-	resp, err := c.c.Do(&req)
-
-	if err != nil {
-		return RequisitionLinkResponse{}, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return RequisitionLinkResponse{}, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return RequisitionLinkResponse{}, fmt.Errorf("expected %d status code: got %d %s", http.StatusOK, resp.StatusCode, resp.Body)
-	}
-	rr := RequisitionLinkResponse{}
-	err = json.Unmarshal(body, &rr)
-
-	if err != nil {
-		return RequisitionLinkResponse{}, err
-	}
-
-	return rr, nil
 }

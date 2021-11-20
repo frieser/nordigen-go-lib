@@ -3,27 +3,30 @@ Nordigen Golang API client library
 
 [Norgigen API documention](https://nordigen.com/en/account_information_documenation/api-documention/overview/)
 
-How to use it:
+How to use it([See a real example app using this library](https://github.com/frieser/openbanking-cli)):
 
 ```go
 package main
 
 import (
-	"github.com/frieser/nordigen-go-lib"
+	"github.com/frieser/nordigen-go-lib/v2"
 	"github.com/google/uuid"
 	"strconv"
 	"time"
+	"log"
 )
 
 const redirectPort = ":3000"
 	
 func main() {
-	token := "your_token"
-	c := nordigen.NewClient(token)
+	c, err := nordigen.NewClient("secret_id", "secret_key")
+
+	if err != nil {
+        log.Fatal(err)
+	}
 
 	// supported banks in a country
-	countryBanks, err := c.ListAspsps(countryCode)
-	
+	countryBanks, err := c.ListInstitutions(countryCode)
 	
 	// get authorization
 	endUserId := uuid.NewString()
@@ -46,23 +49,14 @@ func GetAuthorization(cli nordigen.Client, bankId string, endUserId string) (nor
 	requisition := nordigen.Requisition{
 		Redirect:  "http://localhost" + redirectPort,
 		Reference: strconv.Itoa(int(time.Now().Unix())),
-		EnduserId: endUserId,
-		Agreements: []string{
-
-		},
+		Agreement: "",
 	}
 	r, err := cli.CreateRequisition(requisition)
 
 	if err != nil {
 		return nordigen.Requisition{}, err
 	}
-	rr, err := cli.CreateRequisitionLink(r.Id, nordigen.RequisitionLinkRequest{
-		AspspsId: bankId})
-
-	if err != nil {
-		return nordigen.Requisition{}, err
-	}
-	go internal.OpenBrowser(rr.Initiate)
+	go internal.OpenBrowser(r.Redirect)
 
 	ch := make(chan bool, 1)
 
