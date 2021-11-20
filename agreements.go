@@ -18,9 +18,9 @@ type EndUserAgreement struct {
 	Accepted           interface{} `json:"accepted,omitempty"`
 	MaxHistoricalDays  int         `json:"max_historical_days,omitempty"`
 	AccessValidForDays int         `json:"access_valid_for_days,omitempty"`
-	EnduserId          string      `json:"enduser_id,omitempty"`
-	AspspId            string      `json:"aspsp_id,omitempty"`
+	InstitutionId      string      `json:"institution_id,omitempty"`
 	AgreementVersion   string      `json:"agreement_version,omitempty"`
+	AccessScope        []string    `json:"access_scope"`
 }
 
 const agreementsPath = "agreements"

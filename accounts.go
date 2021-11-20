@@ -10,72 +10,75 @@ import (
 )
 
 type AccountMetadata struct {
-	Id              string `json:"id"`
-	Created         string `json:"created"`
-	LastAccessed    string `json:"last_accessed"`
-	Iban            string `json:"iban"`
-	AspspIdentifier string `json:"aspsp_identifier"`
-	Status          string `json:"status"`
+	Id            string `json:"id,omitempty"`
+	Created       string `json:"created,omitempty"`
+	LastAccessed  string `json:"last_accessed,omitempty"`
+	Iban          string `json:"iban,omitempty"`
+	InstitutionId string `json:"institution_id,omitempty"`
+	// There is an issue in the api, the status is still a string
+	// like in v1
+	Status string `json:"status,omitempty"`
+	//Status        []string `json:"status"`
 }
 
 type AccountBalanceAmount struct {
-	Amount   string `json:"amount"`
-	Currency string `json:"currency"`
+	Amount   string `json:"amount,omitempty"`
+	Currency string `json:"currency,omitempty"`
 }
 
 type AccountBalance struct {
-	BalanceAmount AccountBalanceAmount `json:"balanceAmount"`
-	BalanceType   string               `json:"balanceType"`
+	BalanceAmount AccountBalanceAmount `json:"balanceAmount,omitempty"`
+	BalanceType   string               `json:"balanceType,omitempty"`
 }
 
 type AccountBalances struct {
-	Balances []AccountBalance `json:"balances"`
+	Balances []AccountBalance `json:"balances,omitempty"`
 }
 
 type AccountDetails struct {
 	Account struct {
-		ResourceId string `json:"resourceId"`
-		Iban       string `json:"iban"`
-		Currency   string `json:"currency"`
-		OwnerName  string `json:"ownerName"`
-		Product    string `json:"product"`
-		Status     string `json:"status"`
+		ResourceId string `json:"resourceId,omitempty"`
+		Iban       string `json:"iban,omitempty"`
+		Currency   string `json:"currency,omitempty"`
+		OwnerName  string `json:"ownerName,omitempty"`
+		Product    string `json:"product,omitempty,"`
+		Status     string `json:"status,omitempty"`
 	} `json:"account"`
 }
 
 type AccountTransactions struct {
 	Transactions struct {
 		Booked []struct {
-			TransactionId     string `json:"transactionId"`
-			EntryReference    string `json:"entryReference"`
-			BookingDate       string `json:"bookingDate"`
-			ValueDate         string `json:"valueDate"`
+			TransactionId     string `json:"transactionId,omitempty"`
+			EntryReference    string `json:"entryReference,omitempty"`
+			BookingDate       string `json:"bookingDate,omitempty"`
+			ValueDate         string `json:"valueDate,omitempty"`
 			TransactionAmount struct {
-				Amount   string `json:"amount"`
-				Currency string `json:"currency"`
-			} `json:"transactionAmount"`
+				Amount   string `json:"amount,omitempty"`
+				Currency string `json:"currency,omitempty"`
+			} `json:"transactionAmount,omitempty"`
 			CreditorName    string `json:"creditorName,omitempty"`
 			CreditorAccount struct {
-				Iban string `json:"iban"`
-			} `json:"creditorAccount"`
+				Iban string `json:"iban,omitempty"`
+			} `json:"creditorAccount,omitempty"`
 			UltimateCreditor string `json:"ultimateCreditor,omitempty"`
 			DebtorName       string `json:"debtorName,omitempty"`
 			DebtorAccount    struct {
-				Iban string `json:"iban"`
+				Iban string `json:"iban,omitempty"`
 			} `json:"debtorAccount,omitempty"`
 			UltimateDebtor                    string `json:"ultimateDebtor,omitempty"`
 			RemittanceInformationUnstructured string `json:"remittanceInformationUnstructured"`
 			BankTransactionCode               string `json:"bankTransactionCode,omitempty"`
-		} `json:"booked"`
+		} `json:"booked,omitempty"`
 		Pending []struct {
 			TransactionAmount struct {
-				Amount   string `json:"amount"`
-				Currency string `json:"currency"`
+				Amount   string `json:"amount,omitempty"`
+				Currency string `json:"currency,omitempty"`
 			} `json:"transactionAmount"`
-			ValueDate                         string `json:"valueDate"`
-			RemittanceInformationUnstructured string `json:"remittanceInformationUnstructured"`
-		} `json:"pending"`
-	} `json:"transactions"`
+			ValueDate                         string `json:"valueDate,omitempty"`
+			RemittanceInformationUnstructured string `json:"remittanceInformationUnstructured,omitempty"`
+		} `json:"pending,omitempty"`
+	} `json:"transactions,omitempty"`
 }
 
 const accountPath = "accounts"
