@@ -3,7 +3,6 @@ package nordigen
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -51,7 +50,7 @@ func (c Client) CreateEndUserAgreement(eua EndUserAgreement) (EndUserAgreement, 
 		return EndUserAgreement{}, err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return EndUserAgreement{}, fmt.Errorf("expected %d status code: got %d", http.StatusCreated, resp.StatusCode)
+		return EndUserAgreement{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	err = json.Unmarshal(body, &eua)
 

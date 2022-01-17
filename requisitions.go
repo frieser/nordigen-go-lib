@@ -3,7 +3,6 @@ package nordigen
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -61,7 +60,7 @@ func (c Client) CreateRequisition(r Requisition) (Requisition, error) {
 		return Requisition{}, err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return Requisition{}, fmt.Errorf("expected %d status code: got %d", http.StatusCreated, resp.StatusCode)
+		return Requisition{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	err = json.Unmarshal(body, &r)
 
@@ -91,7 +90,7 @@ func (c Client) GetRequisition(id string) (r Requisition, err error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return Requisition{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return Requisition{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	err = json.Unmarshal(body, &r)
 

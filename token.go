@@ -3,7 +3,6 @@ package nordigen
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -32,8 +31,8 @@ func (c Client) newToken(secretId, secretKey string) (*Token, error) {
 		Method: http.MethodPost,
 		URL: &url.URL{
 			Scheme: "https",
-			Host: baseUrl,
-			Path: strings.Join([]string{apiPath, tokenPath, tokenNewPath}, "/"),
+			Host:   baseUrl,
+			Path:   strings.Join([]string{apiPath, tokenPath, tokenNewPath}, "/"),
 		},
 	}
 	req.Header = http.Header{}
@@ -59,7 +58,7 @@ func (c Client) newToken(secretId, secretKey string) (*Token, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return nil, &APIError{resp.StatusCode, string(body), err}
 	}
 	t := &Token{}
 	err = json.Unmarshal(body, &t)
@@ -96,7 +95,7 @@ func (c Client) refreshToken(refresh string) (*Token, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return nil, &APIError{resp.StatusCode, string(body), err}
 	}
 	t := &Token{}
 	err = json.Unmarshal(body, &t)
