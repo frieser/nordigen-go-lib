@@ -2,7 +2,6 @@ package nordigen
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -43,7 +42,7 @@ func (c Client) ListInstitutions(country string) ([]Institution, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return nil, &APIError{resp.StatusCode, string(body), err}
 	}
 	list := make([]Institution, 0)
 	err = json.Unmarshal(body, &list)
@@ -73,7 +72,7 @@ func (c Client) GetInstitution(institutionID string) (Institution, error) {
 		return Institution{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return Institution{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return Institution{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	insttn := Institution{}
 	err = json.Unmarshal(body, &insttn)
