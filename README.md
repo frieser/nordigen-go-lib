@@ -41,8 +41,12 @@ func main() {
 	blnc, err := c.GetAccountBalances(r.Accounts[0])
 	
 	//get accounts transactions
-	txns, err := c.GetAccountTransactions(r.Accounts[0].Id)
+	txns, err := c.GetAccountTransactions(r.Accounts[0].Id, nil, nil)
 
+	//get previous week accounts transactions
+	from := &time.Now().Add(-14 * 24 * time.Hour)
+	to := &time.Now().Add(-7 * 24 * time.Hour)
+	txns, err := c.GetAccountTransactions(r.Accounts[0].Id, from, to)
 }
 
 func GetAuthorization(cli nordigen.Client, bankId string, endUserId string) (nordigen.Requisition, error) {
