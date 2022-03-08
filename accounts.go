@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type AccountMetadata struct {
@@ -175,13 +176,15 @@ func (c Client) GetAccountDetails(id string) (AccountDetails, error) {
 	return accDtl, nil
 }
 
-func (c Client) GetAccountTransactions(id string) (AccountTransactions, error) {
+func (c Client) GetAccountTransactions(id string, from, to *time.Time) (AccountTransactions, error) {
 	req := http.Request{
 		Method: http.MethodGet,
 		URL: &url.URL{
-			Path: strings.Join([]string{accountPath, id, transactionsPath, ""}, "/"),
+			Path:     strings.Join([]string{accountPath, id, transactionsPath, ""}, "/"),
+			RawQuery: dateParams(from, to),
 		},
 	}
+
 	resp, err := c.c.Do(&req)
 
 	if err != nil {
@@ -203,4 +206,15 @@ func (c Client) GetAccountTransactions(id string) (AccountTransactions, error) {
 	}
 
 	return accTxns, nil
+}
+
+func dateParams(from, to *time.Time) string {
+	params := url.Values{}
+	if from != nil {
+		params.Add("date_from", from.Format("2006-01-02"))
+	}
+	if to != nil {
+		params.Add("date_to", to.Format("2006-01-02"))
+	}
+	return params.Encode()
 }
