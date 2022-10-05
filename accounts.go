@@ -2,7 +2,6 @@ package nordigen
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -105,7 +104,7 @@ func (c Client) GetAccountMetadata(id string) (AccountMetadata, error) {
 		return AccountMetadata{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return AccountMetadata{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return AccountMetadata{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	accMtdt := AccountMetadata{}
 	err = json.Unmarshal(body, &accMtdt)
@@ -135,7 +134,7 @@ func (c Client) GetAccountBalances(id string) (AccountBalances, error) {
 		return AccountBalances{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return AccountBalances{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return AccountBalances{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	accBlnc := AccountBalances{}
 	err = json.Unmarshal(body, &accBlnc)
@@ -165,7 +164,7 @@ func (c Client) GetAccountDetails(id string) (AccountDetails, error) {
 		return AccountDetails{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return AccountDetails{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return AccountDetails{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	accDtl := AccountDetails{}
 	err = json.Unmarshal(body, &accDtl)
@@ -195,7 +194,7 @@ func (c Client) GetAccountTransactions(id string) (AccountTransactions, error) {
 		return AccountTransactions{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return AccountTransactions{}, fmt.Errorf("expected %d status code: got %d", http.StatusOK, resp.StatusCode)
+		return AccountTransactions{}, &APIError{resp.StatusCode, string(body), err}
 	}
 	accTxns := AccountTransactions{}
 	err = json.Unmarshal(body, &accTxns)
