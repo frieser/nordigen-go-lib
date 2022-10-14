@@ -45,39 +45,35 @@ type AccountDetails struct {
 	} `json:"account"`
 }
 
+type Transaction struct {
+	TransactionId     string `json:"transactionId,omitempty"`
+	EntryReference    string `json:"entryReference,omitempty"`
+	BookingDate       string `json:"bookingDate,omitempty"`
+	ValueDate         string `json:"valueDate,omitempty"`
+	TransactionAmount struct {
+		Amount   string `json:"amount,omitempty"`
+		Currency string `json:"currency,omitempty"`
+	} `json:"transactionAmount,omitempty"`
+	CreditorName    string `json:"creditorName,omitempty"`
+	CreditorAccount struct {
+		Iban string `json:"iban,omitempty"`
+	} `json:"creditorAccount,omitempty"`
+	UltimateCreditor string `json:"ultimateCreditor,omitempty"`
+	DebtorName       string `json:"debtorName,omitempty"`
+	DebtorAccount    struct {
+		Iban string `json:"iban,omitempty"`
+	} `json:"debtorAccount,omitempty"`
+	UltimateDebtor                         string   `json:"ultimateDebtor,omitempty"`
+	RemittanceInformationUnstructured      string   `json:"remittanceInformationUnstructured"`
+	RemittanceInformationUnstructuredArray []string `json:"RemittanceInformationUnstructuredArray"`
+	BankTransactionCode                    string   `json:"bankTransactionCode,omitempty"`
+	AdditionalInformation                  string   `json:"additionalInformation,omitempty"`
+}
+
 type AccountTransactions struct {
 	Transactions struct {
-		Booked []struct {
-			TransactionId     string `json:"transactionId,omitempty"`
-			EntryReference    string `json:"entryReference,omitempty"`
-			BookingDate       string `json:"bookingDate,omitempty"`
-			ValueDate         string `json:"valueDate,omitempty"`
-			TransactionAmount struct {
-				Amount   string `json:"amount,omitempty"`
-				Currency string `json:"currency,omitempty"`
-			} `json:"transactionAmount,omitempty"`
-			CreditorName    string `json:"creditorName,omitempty"`
-			CreditorAccount struct {
-				Iban string `json:"iban,omitempty"`
-			} `json:"creditorAccount,omitempty"`
-			UltimateCreditor string `json:"ultimateCreditor,omitempty"`
-			DebtorName       string `json:"debtorName,omitempty"`
-			DebtorAccount    struct {
-				Iban string `json:"iban,omitempty"`
-			} `json:"debtorAccount,omitempty"`
-			UltimateDebtor                         string   `json:"ultimateDebtor,omitempty"`
-			RemittanceInformationUnstructured      string   `json:"remittanceInformationUnstructured"`
-			RemittanceInformationUnstructuredArray []string `json:"RemittanceInformationUnstructuredArray"`
-			BankTransactionCode                    string   `json:"bankTransactionCode,omitempty"`
-		} `json:"booked,omitempty"`
-		Pending []struct {
-			TransactionAmount struct {
-				Amount   string `json:"amount,omitempty"`
-				Currency string `json:"currency,omitempty"`
-			} `json:"transactionAmount"`
-			ValueDate                         string `json:"valueDate,omitempty"`
-			RemittanceInformationUnstructured string `json:"remittanceInformationUnstructured,omitempty"`
-		} `json:"pending,omitempty"`
+		Booked  []Transaction `json:"booked,omitempty"`
+		Pending []Transaction `json:"pending,omitempty"`
 	} `json:"transactions,omitempty"`
 }
 
