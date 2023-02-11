@@ -68,6 +68,7 @@ type Transaction struct {
 	RemittanceInformationUnstructuredArray []string `json:"RemittanceInformationUnstructuredArray"`
 	BankTransactionCode                    string   `json:"bankTransactionCode,omitempty"`
 	AdditionalInformation                  string   `json:"additionalInformation,omitempty"`
+	InternalTransactionId                  string   `json:"internalTransactionId,omitempty"`
 }
 
 type AccountTransactions struct {
