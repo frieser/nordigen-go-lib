@@ -49,8 +49,9 @@ type Transaction struct {
 	TransactionId     string `json:"transactionId,omitempty"`
 	EntryReference    string `json:"entryReference,omitempty"`
 	BookingDate       string `json:"bookingDate,omitempty"`
-	BookingDateTime       string `json:"bookingDateTime,omitempty"`
+	BookingDateTime   string `json:"bookingDateTime,omitempty"`
 	ValueDate         string `json:"valueDate,omitempty"`
+	ValueDateTime     string `json:"valueDateTime,omitempty"`
 	TransactionAmount struct {
 		Amount   string `json:"amount,omitempty"`
 		Currency string `json:"currency,omitempty"`
