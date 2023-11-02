@@ -100,34 +100,3 @@ func (c Client) GetRequisition(id string) (r Requisition, err error) {
 
 	return r, nil
 }
-
-func (c Client) ListRequisitions() (r []Requisition, err error) {
-	req := http.Request{
-		Method: http.MethodGet,
-		URL: &url.URL{
-			Path: strings.Join([]string{requisitionsPath, ""}, "/"),
-		},
-	}
-	resp, err := c.c.Do(&req)
-
-	if err != nil {
-		return nil, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, &APIError{resp.StatusCode, string(body), err}
-	}
-	
-	list := make([]Requisition, 0)
-	err = json.Unmarshal(body, &list)
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
-}
