@@ -60,3 +60,35 @@ func (c Client) CreateEndUserAgreement(eua EndUserAgreement) (EndUserAgreement, 
 
 	return eua, nil
 }
+
+func (c Client) GetEndUserAgreement(id string) (EndUserAgreement, error) {
+	req := http.Request{
+		Method: http.MethodGet,
+		URL: &url.URL{
+			Path: strings.Join([]string{agreementsPath, endUserPath, id, ""}, "/"),
+		},
+	}
+
+	resp, err := c.c.Do(&req)
+
+	if err != nil {
+		return EndUserAgreement{}, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return EndUserAgreement{}, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return EndUserAgreement{}, &APIError{resp.StatusCode, string(body), err}
+	}
+
+	var eua EndUserAgreement
+	err = json.Unmarshal(body, &eua)
+
+	if err != nil {
+		return EndUserAgreement{}, err
+	}
+
+	return eua, nil
+}
