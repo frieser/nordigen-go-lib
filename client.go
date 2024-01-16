@@ -54,7 +54,7 @@ func (t refreshTokenTransport) RoundTrip(req *http.Request) (*http.Response, err
 func NewClient(secretId, secretKey string) (*Client, error) {
 	var err error
 
-	c := &Client{c: &http.Client{}, m: &sync.Mutex{}}
+	c := &Client{c: &http.Client{Timeout: 60 * time.Second}, m: &sync.Mutex{}}
 	c.token, err = c.newToken(secretId, secretKey)
 
 	if err != nil {
