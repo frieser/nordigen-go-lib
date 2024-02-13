@@ -43,7 +43,7 @@ func (t refreshTokenTransport) RoundTrip(req *http.Request) (*http.Response, err
 		if err != nil {
 			return nil, err
 		}
-		t.cli.expiration.Add(time.Duration(t.cli.token.RefreshExpires-60) * time.Second)
+		t.cli.expiration = t.cli.expiration.Add(time.Duration(t.cli.token.RefreshExpires-60) * time.Second)
 	}
 	t.cli.m.Unlock()
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.cli.token.Access))
