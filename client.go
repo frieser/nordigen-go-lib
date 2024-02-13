@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const baseUrl = "ob.nordigen.com"
+const baseUrl = "bankaccountdata.gocardless.com"
 const apiPath = "/api/v2"
 
 type Client struct {
