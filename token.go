@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,22 +25,17 @@ const tokenPath = "token"
 const tokenNewPath = "new/"
 const tokenRefreshPath = "refresh"
 
-func (c Client) newToken(secretId, secretKey string) (*Token, error) {
+func (c Client) newToken() (*Token, error) {
 	req := http.Request{
 		Method: http.MethodPost,
 		URL: &url.URL{
-			Scheme: "https",
-			Host:   baseUrl,
-			Path:   strings.Join([]string{apiPath, tokenPath, tokenNewPath}, "/"),
+			Path: strings.Join([]string{tokenPath, tokenNewPath}, "/"),
 		},
 	}
-	req.Header = http.Header{}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Accept", "application/json")
 
 	data, err := json.Marshal(Secret{
-		SecretId: secretId,
-		AccessId: secretKey,
+		SecretId: c.secretId,
+		AccessId: c.secretKey,
 	})
 	if err != nil {
 		return nil, err
@@ -52,7 +46,7 @@ func (c Client) newToken(secretId, secretKey string) (*Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return nil, err
@@ -89,7 +83,7 @@ func (c Client) refreshToken(refresh string) (*Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return nil, err
