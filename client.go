@@ -1,6 +1,8 @@
 package nordigen
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,13 +14,15 @@ const baseUrl = "bankaccountdata.gocardless.com"
 const apiPath = "/api/v2"
 
 type Client struct {
-	c          *http.Client
-	secretId   string
-	secretKey  string
-	expiration time.Time
-	token      *Token
-	m          *sync.Mutex
-	stopChan   chan struct{}
+	c         *http.Client
+	secretId  string
+	secretKey string
+
+	token       *Token
+	nextRefresh time.Time
+
+	m        *sync.RWMutex
+	stopChan chan struct{}
 }
 
 type Transport struct {
@@ -26,53 +30,68 @@ type Transport struct {
 	cli *Client
 }
 
-func (c *Client) refreshTokenIfNeeded() error {
+// refreshTokenIfNeeded refreshes the token if refresh time has passed
+func (c *Client) refreshTokenIfNeeded(ctx context.Context) error {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	if time.Now().Add(time.Minute).Before(c.expiration) {
-		return nil
-	} else {
-		// Refresh the token if its expiration is less than a minute away
-		newToken, err := c.refreshToken(c.token.Refresh)
-		if err != nil {
-			return err
-		}
-		c.token = newToken
-		c.expiration = time.Now().Add(time.Duration(newToken.RefreshExpires-60) * time.Second)
+	if time.Now().Before(c.nextRefresh) {
 		return nil
 	}
+
+	newToken, err := c.refreshToken(ctx, c.token.Refresh)
+	if err != nil {
+		return err
+	}
+	c.updateToken(newToken)
+	return nil
 }
 
-func (c *Client) StartTokenHandler() {
-	c.stopChan = make(chan struct{})
+// updateToken updates the client token and sets the refresh time to half the
+// access token lifetime.
+func (c *Client) updateToken(t *Token) {
+	c.token = t
+	c.nextRefresh = time.Now().Add(time.Duration(t.AccessExpires/2) * time.Second)
+}
 
-	// Initialize the first token and start the token handler
-	token, err := c.newToken()
+// StartTokenHandler handles token refreshes in the background
+func (c *Client) StartTokenHandler(ctx context.Context) error {
+	// Initialize the first token
+	token, err := c.newToken(ctx)
 	if err != nil {
-		panic("Failed to get initial token: " + err.Error())
+		return errors.New("failed to get initial token: " + err.Error())
 	}
-	c.token = token
 
-	go func() {
-		for {
-			timeToWait := time.Until(c.expiration) - time.Minute
-			if timeToWait < 0 {
-				// If the token is already expired, try to refresh immediately
-				timeToWait = 0
-			}
+	c.m.Lock()
+	c.updateToken(token)
+	c.m.Unlock()
 
-			select {
-			case <-c.stopChan:
-				return
-			case <-time.After(timeToWait):
-				if err := c.refreshTokenIfNeeded(); err != nil {
-					// TODO(Martin): add retry logic
-					panic("Failed to refresh token: " + err.Error())
-				}
-			}
+	go c.tokenRefreshLoop(ctx)
+	return nil
+}
+
+func (c *Client) tokenRefreshLoop(ctx context.Context) {
+	for {
+		c.m.RLock()
+		refreshTime := c.nextRefresh
+		c.m.RUnlock()
+
+		timeToWait := time.Until(refreshTime)
+		if timeToWait < 0 {
+			timeToWait = 0
 		}
-	}()
+
+		select {
+		case <-c.stopChan:
+			return
+		case <-time.After(timeToWait):
+			if err := c.refreshTokenIfNeeded(ctx); err != nil {
+				panic(fmt.Sprintf("failed to refresh token: %s", err))
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (c *Client) StopTokenHandler() {
@@ -98,17 +117,22 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 // NewClient creates a new Nordigen client that handles token refreshes and adds
 // the necessary headers, host, and path to all requests.
 func NewClient(secretId, secretKey string) (*Client, error) {
-	c := &Client{c: &http.Client{Timeout: 60 * time.Second}, m: &sync.Mutex{},
+	c := &Client{
+		c:         &http.Client{Timeout: 60 * time.Second},
 		secretId:  secretId,
 		secretKey: secretKey,
+
+		m:        &sync.RWMutex{},
+		stopChan: make(chan struct{}),
 	}
 
 	// Add transport to handle headers, host and path for all requests
 	c.c.Transport = Transport{rt: http.DefaultTransport, cli: c}
 
 	// Start token handler
-	c.StartTokenHandler()
-	defer c.StopTokenHandler()
+	if err := c.StartTokenHandler(context.Background()); err != nil {
+		return nil, err
+	}
 
 	return c, nil
 }
