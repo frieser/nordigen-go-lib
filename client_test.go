@@ -22,7 +22,7 @@ func TestClientTokenRefresh(t *testing.T) {
 		t.Fatalf("NewClient: %s", err)
 	}
 
-	c.expiration = time.Now().Add(-time.Hour)
+	c.nextRefresh = time.Now().Add(-time.Hour)
 	_, err = c.ListRequisitions()
 	if err != nil {
 		t.Fatalf("ListRequisitions: %s", err)
