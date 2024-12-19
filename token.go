@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
 type Token struct {
@@ -31,23 +30,17 @@ const tokenPath = "token"
 const tokenNewPath = "new/"
 const tokenRefreshPath = "refresh/"
 
-// accessExpires returns the time when access token expires divided by divisor
-func (t *Token) accessExpires(divisor int) time.Time {
-	return time.Now().Add(time.Second * time.Duration(t.AccessExpires/divisor))
-}
+// newToken gets a new access token
+func (c *Client) newToken(ctx context.Context) error {
+	c.m.Lock()
+	defer c.m.Unlock()
 
-// refreshExpires returns the time when refresh token expires divided by divisor
-func (t *Token) refreshExpires(divisor int) time.Time {
-	return time.Now().Add(time.Second * time.Duration(t.RefreshExpires/divisor))
-}
-
-func (c *Client) newToken(ctx context.Context) (*Token, error) {
 	data, err := json.Marshal(Secret{
 		SecretId: c.secretId,
 		AccessId: c.secretKey,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	req := &http.Request{
@@ -61,29 +54,35 @@ func (c *Client) newToken(ctx context.Context) (*Token, error) {
 
 	resp, err := c.c.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
 	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return readErr
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, &APIError{StatusCode: resp.StatusCode, Body: string(body)}
+		return &APIError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 
 	t := &Token{}
 	if err := json.Unmarshal(body, t); err != nil {
-		return nil, err
+		return err
 	}
-	return t, nil
+
+	c.token = t
+	return nil
 }
 
-func (c *Client) refreshToken(ctx context.Context) (*Token, error) {
+// refreshToken gets a new access token using the refresh token
+func (c *Client) refreshToken(ctx context.Context) error {
+	c.m.Lock()
+	defer c.m.Unlock()
+
 	data, err := json.Marshal(TokenRefresh{Refresh: c.token.Refresh})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	req := &http.Request{
@@ -97,21 +96,24 @@ func (c *Client) refreshToken(ctx context.Context) (*Token, error) {
 
 	resp, err := c.c.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
 	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return readErr
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, &APIError{StatusCode: resp.StatusCode, Body: string(body)}
+		return &APIError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 
 	t := &Token{}
 	if err := json.Unmarshal(body, t); err != nil {
-		return nil, err
+		return err
 	}
-	return t, nil
+
+	c.token.Access = t.Access
+	c.token.AccessExpires = t.AccessExpires
+	return nil
 }
