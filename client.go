@@ -18,11 +18,8 @@ type Client struct {
 	secretId  string
 	secretKey string
 
-	token       *Token
-	nextRefresh time.Time
-
-	m        *sync.RWMutex
-	stopChan chan struct{}
+	m     *sync.RWMutex
+	token *Token
 }
 
 type Transport struct {
@@ -30,72 +27,71 @@ type Transport struct {
 	cli *Client
 }
 
-// refreshTokenIfNeeded refreshes the token if refresh time has passed
-func (c *Client) refreshTokenIfNeeded(ctx context.Context) error {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if time.Now().Before(c.nextRefresh) {
-		return nil
-	}
-
-	newToken, err := c.refreshToken(ctx, c.token.Refresh)
-	if err != nil {
-		return err
-	}
-	c.updateToken(newToken)
-	return nil
-}
-
-// updateToken updates the client token and sets the refresh time to half the
-// access token lifetime.
-func (c *Client) updateToken(t *Token) {
-	c.token = t
-	c.nextRefresh = time.Now().Add(time.Duration(t.AccessExpires/2) * time.Second)
-}
-
 // StartTokenHandler handles token refreshes in the background
 func (c *Client) StartTokenHandler(ctx context.Context) error {
 	// Initialize the first token
 	token, err := c.newToken(ctx)
 	if err != nil {
-		return errors.New("failed to get initial token: " + err.Error())
+		return errors.New("getting initial token: " + err.Error())
 	}
-
 	c.m.Lock()
-	c.updateToken(token)
+	c.token = token
 	c.m.Unlock()
 
-	go c.tokenRefreshLoop(ctx)
+	go c.tokenHandler(ctx)
 	return nil
 }
 
-func (c *Client) tokenRefreshLoop(ctx context.Context) {
+// tokenHandler gets a new token using the refresh token and a new pair when the
+// refresh token expires.
+func (c *Client) tokenHandler(ctx context.Context) {
+	newTokenTimer := time.NewTimer(0)     // Start immediately
+	refreshTokenTimer := time.NewTimer(0) // Start immediately
+	defer func() {
+		newTokenTimer.Stop()
+		refreshTokenTimer.Stop()
+	}()
+
+	resetTimer := func(timer *time.Timer, expiryTime time.Time) {
+		if !timer.Stop() {
+			<-timer.C
+		}
+		timer.Reset(time.Until(expiryTime))
+	}
+
 	for {
 		c.m.RLock()
-		refreshTime := c.nextRefresh
+		newTokenExpiry := c.token.accessExpires(2)
+		refreshTokenExpiry := c.token.refreshExpires(2)
 		c.m.RUnlock()
 
-		timeToWait := time.Until(refreshTime)
-		if timeToWait < 0 {
-			timeToWait = 0
-		}
+		resetTimer(newTokenTimer, newTokenExpiry)
+		resetTimer(refreshTokenTimer, refreshTokenExpiry)
 
 		select {
-		case <-c.stopChan:
-			return
-		case <-time.After(timeToWait):
-			if err := c.refreshTokenIfNeeded(ctx); err != nil {
-				panic(fmt.Sprintf("failed to refresh token: %s", err))
-			}
 		case <-ctx.Done():
 			return
+		case <-newTokenTimer.C:
+			if token, err := c.newToken(ctx); err != nil {
+				panic(fmt.Sprintf("getting new token: %s", err))
+			} else {
+				c.updateToken(token)
+			}
+		case <-refreshTokenTimer.C:
+			if token, err := c.refreshToken(ctx); err != nil {
+				panic(fmt.Sprintf("refreshing token: %s", err))
+			} else {
+				c.updateToken(token)
+			}
 		}
 	}
 }
 
-func (c *Client) StopTokenHandler() {
-	close(c.stopChan)
+// updateToken updates the client's token
+func (c *Client) updateToken(t *Token) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.token = t
 }
 
 func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -122,8 +118,7 @@ func NewClient(secretId, secretKey string) (*Client, error) {
 		secretId:  secretId,
 		secretKey: secretKey,
 
-		m:        &sync.RWMutex{},
-		stopChan: make(chan struct{}),
+		m: &sync.RWMutex{},
 	}
 
 	// Add transport to handle headers, host and path for all requests
