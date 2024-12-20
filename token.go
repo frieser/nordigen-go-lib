@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type Token struct {
@@ -30,7 +31,17 @@ const tokenPath = "token"
 const tokenNewPath = "new/"
 const tokenRefreshPath = "refresh/"
 
-func (c Client) newToken(ctx context.Context) (*Token, error) {
+// accessExpires returns the time when access token expires divided by divisor
+func (t *Token) accessExpires(divisor int) time.Time {
+	return time.Now().Add(time.Second * time.Duration(t.AccessExpires/divisor))
+}
+
+// refreshExpires returns the time when refresh token expires divided by divisor
+func (t *Token) refreshExpires(divisor int) time.Time {
+	return time.Now().Add(time.Second * time.Duration(t.RefreshExpires/divisor))
+}
+
+func (c *Client) newToken(ctx context.Context) (*Token, error) {
 	data, err := json.Marshal(Secret{
 		SecretId: c.secretId,
 		AccessId: c.secretKey,
@@ -69,8 +80,8 @@ func (c Client) newToken(ctx context.Context) (*Token, error) {
 	return t, nil
 }
 
-func (c Client) refreshToken(ctx context.Context, refresh string) (*Token, error) {
-	data, err := json.Marshal(TokenRefresh{Refresh: refresh})
+func (c *Client) refreshToken(ctx context.Context) (*Token, error) {
+	data, err := json.Marshal(TokenRefresh{Refresh: c.token.Refresh})
 	if err != nil {
 		return nil, err
 	}
