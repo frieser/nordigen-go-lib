@@ -1,30 +1,75 @@
 package nordigen
 
 import (
+	"context"
+	"net/http"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
 
-// TestClientTokenRefresh should do a successful token refresh. We force this by
-// setting the expiration to a time in the past and then calling any method.
-// This test will only run if you have a valid secretId and secretKey in your
-// environment.
-func TestClientTokenRefresh(t *testing.T) {
-	id, id_exists := os.LookupEnv("NORDIGEN_SECRET_ID")
-	key, key_exists := os.LookupEnv("NORDIGEN_SECRET_KEY")
-	if !id_exists || !key_exists {
+var (
+	sharedClient *Client
+	initOnce     sync.Once
+)
+
+func initTestClient(t *testing.T) *Client {
+	id, idExists := os.LookupEnv("NORDIGEN_SECRET_ID")
+	key, keyExists := os.LookupEnv("NORDIGEN_SECRET_KEY")
+	if !idExists || !keyExists {
 		t.Skip("NORDIGEN_SECRET_ID and NORDIGEN_SECRET_KEY not set")
 	}
 
-	c, err := NewClient(id, key)
-	if err != nil {
-		t.Fatalf("NewClient: %s", err)
-	}
+	initOnce.Do(func() {
+		c := &Client{
+			c:         &http.Client{Timeout: 60 * time.Second},
+			secretId:  id,
+			secretKey: key,
 
-	c.nextRefresh = time.Now().Add(-time.Hour)
-	_, err = c.ListRequisitions()
+			m: &sync.RWMutex{},
+		}
+		c.c.Transport = Transport{rt: http.DefaultTransport, cli: c}
+
+		// Initialize the first token
+		token, err := c.newToken(context.Background())
+		if err != nil {
+			t.Fatalf("newToken: %s", err)
+		}
+
+		c.token = token
+		sharedClient = c
+	})
+
+	return sharedClient
+}
+
+func TestAccessRefresh(t *testing.T) {
+	c := initTestClient(t)
+
+	// Expire token immediately
+	c.token.AccessExpires = 0
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go c.tokenHandler(ctx)
+	_, err := c.ListRequisitions()
 	if err != nil {
 		t.Fatalf("ListRequisitions: %s", err)
 	}
+	cancel() // Stop handler again
+}
+
+func TestRefreshRefresh(t *testing.T) {
+	c := initTestClient(t)
+
+	// Expire token immediately
+	c.token.RefreshExpires = 0
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go c.tokenHandler(ctx)
+	_, err := c.ListRequisitions()
+	if err != nil {
+		t.Fatalf("ListRequisitions: %s", err)
+	}
+	cancel() // Stop handler again
 }
