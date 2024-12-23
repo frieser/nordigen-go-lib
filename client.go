@@ -30,68 +30,40 @@ type Transport struct {
 // StartTokenHandler handles token refreshes in the background
 func (c *Client) StartTokenHandler(ctx context.Context) error {
 	// Initialize the first token
-	token, err := c.newToken(ctx)
+	err := c.newToken(ctx)
 	if err != nil {
 		return errors.New("getting initial token: " + err.Error())
 	}
-	c.m.Lock()
-	c.token = token
-	c.m.Unlock()
 
 	go c.tokenHandler(ctx)
 	return nil
 }
 
 // tokenHandler gets a new token using the refresh token and a new pair when the
-// refresh token expires.
+// refresh token expires
 func (c *Client) tokenHandler(ctx context.Context) {
-	newTokenTimer := time.NewTimer(0)     // Start immediately
-	refreshTokenTimer := time.NewTimer(0) // Start immediately
-	defer func() {
-		newTokenTimer.Stop()
-		refreshTokenTimer.Stop()
-	}()
-
-	resetTimer := func(timer *time.Timer, expiryTime time.Time) {
-		if !timer.Stop() {
-			<-timer.C
-		}
-		timer.Reset(time.Until(expiryTime))
-	}
+	refresh := time.NewTicker(time.Hour * 12)  // 12 hours
+	new := time.NewTicker(time.Hour * 24 * 14) // 14 days
+	defer refresh.Stop()
+	defer new.Stop()
 
 	for {
-		c.m.RLock()
-		newTokenExpiry := c.token.accessExpires(2)
-		refreshTokenExpiry := c.token.refreshExpires(2)
-		c.m.RUnlock()
-
-		resetTimer(newTokenTimer, newTokenExpiry)
-		resetTimer(refreshTokenTimer, refreshTokenExpiry)
-
 		select {
 		case <-ctx.Done():
 			return
-		case <-newTokenTimer.C:
-			if token, err := c.newToken(ctx); err != nil {
+
+		case <-new.C:
+			if err := c.newToken(ctx); err != nil {
+				// TODO(Martin): Improve error handling
 				panic(fmt.Sprintf("getting new token: %s", err))
-			} else {
-				c.updateToken(token)
 			}
-		case <-refreshTokenTimer.C:
-			if token, err := c.refreshToken(ctx); err != nil {
+
+		case <-refresh.C:
+			if err := c.refreshToken(ctx); err != nil {
 				panic(fmt.Sprintf("refreshing token: %s", err))
-			} else {
-				c.updateToken(token)
 			}
 		}
 	}
-}
-
-// updateToken updates the client's token
-func (c *Client) updateToken(t *Token) {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.token = t
 }
 
 func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {

@@ -32,12 +32,11 @@ func initTestClient(t *testing.T) *Client {
 		c.c.Transport = Transport{rt: http.DefaultTransport, cli: c}
 
 		// Initialize the first token
-		token, err := c.newToken(context.Background())
+		err := c.newToken(context.Background())
 		if err != nil {
 			t.Fatalf("newToken: %s", err)
 		}
 
-		c.token = token
 		sharedClient = c
 	})
 
