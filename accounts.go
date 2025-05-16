@@ -66,6 +66,7 @@ type Transaction struct {
 		Iban string `json:"iban,omitempty"`
 	} `json:"debtorAccount,omitempty"`
 	UltimateDebtor                         string   `json:"ultimateDebtor,omitempty"`
+	ProprietaryBankTransactionCode         string   `json:"proprietaryBankTransactionCode,omitempty"`
 	RemittanceInformationUnstructured      string   `json:"remittanceInformationUnstructured"`
 	RemittanceInformationUnstructuredArray []string `json:"RemittanceInformationUnstructuredArray"`
 	BankTransactionCode                    string   `json:"bankTransactionCode,omitempty"`
